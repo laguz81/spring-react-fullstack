@@ -17,3 +17,28 @@ export async function getAllStudents () {
         const response = await axios.get("api/v1/students");
         return await response.data;
 }
+
+export async function addNewStudent (student) {
+    const response = await axios.post("api/v1/students",
+        student,
+        {
+            headers:{
+              'Content-Type': 'application/json'
+            },
+        });
+    return await response.data;
+}
+export async function deleteStudent (studentId) {
+    const response = await axios.delete("api/v1/students/" + studentId);
+    return await response.data;
+}
+export async function saveStudent (student) {
+    const response = await axios.put("api/v1/students",
+        student,
+        {
+            headers:{
+                'Content-Type': 'application/json'
+            },
+        });
+    return await response.data;
+}

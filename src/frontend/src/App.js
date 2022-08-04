@@ -1,12 +1,27 @@
-import {DesktopOutlined, FileOutlined, PieChartOutlined, TeamOutlined, UserOutlined,} from '@ant-design/icons';
-import {Breadcrumb, Empty, Layout, Menu, Spin, Table} from 'antd';
+import {
+    DesktopOutlined,
+    FileOutlined,
+    PieChartOutlined,
+    PlusOutlined,
+    TeamOutlined,
+    UserOutlined,
+} from '@ant-design/icons';
+import {Badge, Breadcrumb, Button, Empty, Layout, Menu, Popconfirm, Spin, Table, Tag} from 'antd';
 import {useEffect, useState} from "react";
-import {getAllStudents} from "./client";
+import {deleteStudent, getAllStudents} from "./client";
+import StudentDrawerForm from "./StudentDrawerForm";
+
 import './App.css';
+import Avatar from "antd/es/avatar/avatar";
+import {errorNotificacion, successNotificacion} from "./Notificacion";
 
 const {Header, Content, Footer, Sider} = Layout;
 
 function App() {
+    const [collapsed, setCollapsed] = useState(false);
+    const [students, setStudents] = useState([]);
+    const [fetching, setFetching] = useState(true);
+    const [showDrawer, setShowDrawer] = useState(false);
 
     function getItem(label, key, icon, children) {
         return {
@@ -28,23 +43,59 @@ function App() {
         getItem('Team', 'sub2', <TeamOutlined/>, [getItem('Team 1', '6'), getItem('Team 2', '8')]),
         getItem('Files', '9', <FileOutlined/>),
     ];
-    const [collapsed, setCollapsed] = useState(false);
-    useEffect(() => {
+
+    const fetchStudents = () =>
         getAllStudents()
             .then(data => {
-                    setStudents(data);
-                    setFetching(false);
-                }
-            )
-        ;
+                setStudents(data);
+                console.log('fetchStudents');
+            })
+            .catch(err => {
+                console.log(err.response.data);
+                errorNotificacion("There was an issue", `${err.response.data.message} [${err.response.data.status}: ${err.response.data.error}] `);
+            })
+            .finally(()=>
+                setFetching(false)
+            );
+
+    const removeStudent = (studentId, callBackFetchStudents) =>
+        deleteStudent(studentId)
+            .then(data => {
+                successNotificacion("Eliminated student success",`Student with id: ${studentId} was deleted`);
+                callBackFetchStudents();
+            })
+            .catch(err => {
+                console.log(err.response.data);
+                errorNotificacion("There was an issue", `${err.response.data.message} [${err.response.data.status}: ${err.response.data.error}] `);
+            });
 
 
+    useEffect(() => {
+        fetchStudents();
     }, []);
-    const [students, setStudents] = useState([]);
-    const [fetching, setFetching] = useState(true);
 
+    const TheAvatar = ({name}) => {
+        let trim = name.trim();
+        if (trim.length === 0) {
+            return <Avatar icon={<UserOutlined/>}/>
+        }
+        const split = trim.split(" ");
+        if (split.length === 1) {
+            return <Avatar> {name.charAt(0).toUpperCase()} </Avatar>
+        }
+        return <Avatar>
+            {`${name.charAt(0).toUpperCase()}${split[1].charAt(0).toUpperCase()}`}
+        </Avatar>
 
-    const columns = [
+    }
+
+    const columns = fetchStudents => [
+        {
+            title: '',
+            dataIndex: 'avatar',
+            key: 'avatar',
+            render: (text, student) => <TheAvatar name={student.name}/>
+        },
         {
             title: 'Id',
             dataIndex: 'id',
@@ -65,6 +116,24 @@ function App() {
             dataIndex: 'gender',
             key: 'gender',
         },
+        {
+            title: 'Actions',
+            dataIndex: 'actions',
+            key: 'actions',
+            render: (text, student) =>
+                <>
+                    <Popconfirm
+                        placement='topRight'
+                        title={`Are you sure to delete this student ${student.name}?`}
+                        onConfirm={() => removeStudent(student.id, fetchStudents)}
+                        okText="Yes"
+                        cancelText="No"
+                    >
+                        <Button>Delete</Button>
+                    </Popconfirm>
+                    <Button onClick={() => setShowDrawer(!showDrawer)}>Edit</Button>
+                </>
+        }
     ];
 
     function PrintStudent(students) {
@@ -72,18 +141,60 @@ function App() {
             return <Spin/>
         }
         if (students.length <= 0) {
-            return <Empty/>
+            return <>
+                <Button
+                    onClick={() => setShowDrawer(!showDrawer)}
+                    type="primary"
+                    shape="round"
+                    icon={<PlusOutlined/>}
+                    size={"small"}>
+                    Add New Student
+                </Button>
+                <StudentDrawerForm
+                    showDrawer={showDrawer}
+                    setShowDrawer={setShowDrawer}
+                    fetchStudents={fetchStudents}
+                />
+                <Empty/>
+            </>
+
         }
         return (
-            <Table
-                dataSource={students}
-                columns={columns}
-                bordered
-                title={() => 'Students'}
-                pagination={{pageSize: 50}}
-                scroll={{y: 240}}
-                rowKey={(student)=>student.id}
-            />
+            <>
+                <StudentDrawerForm
+                    showDrawer={showDrawer}
+                    setShowDrawer={setShowDrawer}
+                    fetchStudents={fetchStudents}
+                />
+                <Table
+                    dataSource={students}
+                    columns={columns(fetchStudents)}
+                    bordered
+                    title={() =>
+                        <>
+                            <Tag>Number of students</Tag>
+                            <Badge
+                                count={students.length}
+                                className="site-badge-count-109"
+                                style={{
+                                    backgroundColor: "#108ee9",
+                                }}/>
+                            <br/><br/>
+                            <Button
+                                onClick={() => setShowDrawer(!showDrawer)}
+                                type="primary"
+                                shape="round"
+                                icon={<PlusOutlined/>}
+                                size={"small"}>
+                                Add New Student
+                            </Button>
+                        </>
+                    }
+                    pagination={{pageSize: 50}}
+                    scroll={{y: 500}}
+                    rowKey={(student) => student.id}
+                />
+            </>
         );
     }
 
