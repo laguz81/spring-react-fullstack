@@ -60,7 +60,7 @@ function App() {
 
     const removeStudent = (studentId, callBackFetchStudents) =>
         deleteStudent(studentId)
-            .then(data => {
+            .then(() => {
                 successNotificacion("Eliminated student success",`Student with id: ${studentId} was deleted`);
                 callBackFetchStudents();
             })

@@ -4,7 +4,8 @@ const openNotificationWithIcon = (type, message, description, placement) => {
     placement = placement || 'topRight';
     notification[type]({
         message: message,
-        description: description
+        description: description,
+        placement: placement
     });
 };
 
